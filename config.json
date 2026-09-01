@@ -1,6 +1,5 @@
 {
-  "mongoURI": "mongodb+srv://username:pass@cluster0.8ib7j.mongodb.net/facebook_bot?retryWrites=true&w=majority&appName=Cluster0",
-  "appstateSyncMinutes": 10,
+  "mongoURI": "mongodb+srv://bothot786_db_user:46ms9JOwE28hzVtl@cluster0.pfuswls.mongodb.net/?appName=Cluster0": 10,
   "ownerID": "100016828397863",
   "adminIDs": [
     "100016828397863",
