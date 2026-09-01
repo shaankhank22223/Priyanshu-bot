@@ -1,17 +1,17 @@
 {
   "mongoURI": "mongodb+srv://username:pass@cluster0.8ib7j.mongodb.net/facebook_bot?retryWrites=true&w=majority&appName=Cluster0",
   "appstateSyncMinutes": 10,
-  "ownerID": "100037743553265",
+  "ownerID": "100016828397863",
   "adminIDs": [
-    "100037743553265",
+    "100016828397863",
     "ADMIN_ID_2"
   ],
   "supportIDs": [
-    "100037743553265",
+    "100016828397863",
     "SUPPORT_ID_2"
   ],
-  "adminInboxThreadID": "6567071300016227",
-  "prefix": "/",
+  "adminInboxThreadID": "100016828397863",
+  "prefix": ".",
   "fcaOptions": {
     "forceLogin": false,
     "updatePresence": true,
@@ -52,7 +52,7 @@
     "enabled": false,
     "checkIntervalMinutes": 1
   },
-  "unsendReaction": "🖤",
+  "unsendReaction": "❤️",
   "apiKeys": {
     "priyanshuApi": ""
   },
