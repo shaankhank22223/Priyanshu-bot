@@ -1,16 +1,17 @@
 {
-  "mongoURI": "mongodb+srv://bothot786_db_user:46ms9JOwE28hzVtl@cluster0.pfuswls.mongodb.net/?appName=Cluster0": 10,
-  "ownerID": "100016828397863",
+  "mongoURI": "mongodb+srv://bothot786_db_user:46ms9JOwE28hzVtl@cluster0.pfuswls.mongodb.net/?appName=Cluster0",
+  "appstateSyncMinutes": 10,
+  "ownerID": 100016828397863",
   "adminIDs": [
     "100016828397863",
     "ADMIN_ID_2"
   ],
   "supportIDs": [
-    "100016828397863",
+    "100075933317520",
     "SUPPORT_ID_2"
   ],
   "adminInboxThreadID": "100016828397863",
-  "prefix": ".",
+  "prefix": "*",
   "fcaOptions": {
     "forceLogin": false,
     "updatePresence": true,
@@ -24,7 +25,7 @@
     "autoReconnect": true,
     "userAgent": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 CrKey/1.54.250320"
   },
-  "botNickname": "FB Bot",
+  "botNickname": "SHAAN KHAN",
   "commandEnabled": true,
   "eventEnabled": true,
   "announceImageChange": true,
@@ -67,8 +68,8 @@
     "mode": "public"
   },
   "github": {
-    "token": "YOUR_GITHUB_TOKEN",
-    "owner": "YOUR_USERNAME",
-    "repo": "YOUR_REPO_NAME"
+    "token": "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",
+    "owner": "tahachandia331_db_user",
+    "repo": "https://github.com/bothot786-code/Taha-new-Bot-pro1"
   }
 }
