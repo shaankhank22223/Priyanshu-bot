@@ -23,7 +23,7 @@
     "cors": "^2.8.5",
     "discord-image-generation": "^1.4.25",
     "express": "^5.2.1",
-    "fca-priyansh": "    "fca-priyansh": "^23.0.0",
+    "fca-priyansh": "    "fca-priyansh": "*",
     "fs-extra": "^11.1.0",
     "googlethis": "^1.8.0",
     "got": "^14.6.6",
