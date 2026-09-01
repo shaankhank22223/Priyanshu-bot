@@ -1,4 +1,4 @@
-name: Shaan.js CI
+name: Node.js CI
 
 on:
   push:
