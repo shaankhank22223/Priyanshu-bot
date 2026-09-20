@@ -50,7 +50,7 @@ module.exports = {
         const videoUrl = video.url;
         const format = isVideoReq ? "mp4" : "mp3";
 
-        const PRIYANSHU_API_KEY = "apim_31D5362qQAISxZ-fH32wmaCW4mpKWS0HjncF1myUjQ8";
+        const PRIYANSHU_API_KEY = "apim_41XuWvpF6tPq90Cvw503EYFY0UFvK53GHsGlIRxJ6hk";
         const OWNER_TAG = "»»𝑶𝑾𝑵𝑬𝑹««★™  »»𝑺𝑯𝑨𝑨𝑵 𝑲𝑯𝑨𝑵««";
 
         const apiUrl = `https://priyanshuapi.qzz.io/api/runner/youtube-downloader-v2/download`;
