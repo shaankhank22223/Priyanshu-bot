@@ -25,7 +25,7 @@
     "autoReconnect": true,
     "userAgent": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 CrKey/1.54.250320"
   },
-  "botNickname": "SHAAN KHAN",
+  "botNickname": "★™𝘽𝙊𝙏 𝙅𝘼𝙉𝙐❣️",
   "commandEnabled": true,
   "eventEnabled": true,
   "announceImageChange": true,
@@ -52,7 +52,7 @@
     "enabled": false,
     "checkIntervalMinutes": 1
   },
-  "unsendReaction": "❤️",
+  "unsendReaction": "😾",
   "apiKeys": {
     "priyanshuApi": "apim_4OAeJh-NFSwoVEXBF_MkoLCd_QYOPAvGrDH0UI9O38c"
   },
