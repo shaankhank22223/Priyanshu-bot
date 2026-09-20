@@ -9,7 +9,7 @@ module.exports = {
     version: "18.6.2",
     hasPermssion: 0,
     credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
-    description: "Muskan AI + Priyanshu API Media Downloader",
+    description: "Muskan AI + Priyansh Rajput API Media Downloader",
     commandCategory: "ai",
     usages: "{prefix}muskan <baat karein ya gaana maangein>",
     cooldowns: 5,
