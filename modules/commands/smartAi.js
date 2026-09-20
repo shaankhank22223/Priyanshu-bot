@@ -11,7 +11,7 @@ module.exports.config = {
     name: "muskan",
     aliases: ["music", "yt", "ytmusic", "sing", "song"],
     version: "1.3.0",
-    credit: "Shaan Khan",
+    credit: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
     description: "Download music (audio) or video from YouTube or chat with Muskan AI",
     hasPrefix: true,
     permission: 'PUBLIC',
