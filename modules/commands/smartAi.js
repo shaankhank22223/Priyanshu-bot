@@ -23,7 +23,7 @@ module.exports.config = {
   name: "muskan",
   version: "18.7.0",
   hasPermssion: 0,
-  credits: "Shaan Khan",
+  credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
   description: "Muskan AI + Priyanshu API Media Downloader (MongoDB Supported)",
   commandCategory: "ai",
   usages: "muskan <baat karein ya gaana maangein>",
