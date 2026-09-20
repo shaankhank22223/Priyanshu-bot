@@ -1,28 +1,126 @@
 const axios = require("axios");
-const fs = require("fs");
+const yts = require("yt-search");
+const fs = require("fs-extra");
 const path = require("path");
-const { resolveUserProfile } = global.gender || require("../../utils/gender");
 
-const AI_API = "https://uzairrajputapis.qzz.io/api/ai/gemini";
+module.exports = {
+  config: {
+    name: "muskan",
+    version: "18.6.2",
+    hasPermssion: 0,
+    credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
+    description: "Muskan AI + Priyanshu API Media Downloader",
+    commandCategory: "ai",
+    usages: "{prefix}muskan <baat karein ya gaana maangein>",
+    cooldowns: 5,
+    hasPrefix: false
+  },
 
-const OWNER_UID = "100037743553265";
-const SHONI_UID = "61592620318122";
+  run: async function ({ api, event, args }) {
+    const { threadID, messageID, senderID, body } = event;
+    let cleanedMsg = (args.join(" ") || body || "").replace(/^muskan[\s,!.?:-]*/i, "").trim();
 
-// Global Chat Memory for Thread History
-global.chatMemory = global.chatMemory || { history: {} };
+    if (!cleanedMsg) {
+      return api.sendMessage("Bolo na Shaan, kya baat karni hai? 😘", threadID, messageID);
+    }
 
-async function getAiReply(threadID, userName, userQuery) {
-  // Initialize and maintain last 5 messages per thread
-  global.chatMemory.history[threadID] = global.chatMemory.history[threadID] || [];
-  global.chatMemory.history[threadID].push(`${userName}: ${userQuery}`);
-  if (global.chatMemory.history[threadID].length > 5) {
-    global.chatMemory.history[threadID].shift();
-  }
+    const isVideoReq = /\b(video|vdo|mp4|film|movie)\b/i.test(cleanedMsg);
+    const isAudioReq = /\b(song|music|audio|mp3|play|gaana|gane|ghana)\b/i.test(cleanedMsg);
+    const isUrl = /(youtube\.com|youtu\.be)/i.test(cleanedMsg);
 
-  const conversationContext = global.chatMemory.history[threadID].join("\n");
+    // Media Downloader Section
+    if (isVideoReq || isAudioReq || isUrl) {
+      try {
+        if (api.setMessageReaction) api.setMessageReaction("⌛", messageID, () => {}, true);
 
-  // Muskan Persona Custom Prompt
-  const prompt = `
+        let query = cleanedMsg.replace(/video|vdo|mp4|song|music|audio|mp3|play|gaana|gane|ghana/gi, "").trim();
+        if (isUrl) query = cleanedMsg;
+
+        if (!query) {
+          return api.sendMessage("Naam to batao kya download karun? 🥺", threadID, messageID);
+        }
+
+        const searchResult = await yts(query);
+        if (!searchResult || !searchResult.videos.length) {
+          if (api.setMessageReaction) api.setMessageReaction("❌", messageID, () => {}, true);
+          return api.sendMessage("Maafi, ye video ya song nahi mila 🥺💔", threadID, messageID);
+        }
+
+        const video = searchResult.videos[0];
+        const videoUrl = video.url;
+        const format = isVideoReq ? "mp4" : "mp3";
+
+        const PRIYANSHU_API_KEY = "apim_31D5362qQAISxZ-fH32wmaCW4mpKWS0HjncF1myUjQ8";
+        const OWNER_TAG = "»»𝑶𝑾𝑵𝑬𝑹««★™  »»𝑺𝑯𝑨𝑨𝑵 𝑲𝑯𝑨𝑵««";
+
+        const apiUrl = `https://priyanshuapi.qzz.io/api/runner/youtube-downloader-v2/download`;
+        const response = await axios.post(apiUrl, {
+          url: videoUrl,
+          format: format,
+          quality: isVideoReq ? "360" : "320"
+        }, {
+          headers: {
+            'Authorization': `Bearer ${PRIYANSHU_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 60000
+        });
+
+        const downloadUrl = response.data?.data?.downloadUrl;
+        if (!downloadUrl) throw new Error("Link not found");
+
+        const cacheDir = path.join(__dirname, "cache");
+        if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+
+        const fileName = `${Date.now()}.${format}`;
+        const cachePath = path.join(cacheDir, fileName);
+
+        const infoMsg = `🖤 𝗧𝗶𝘁𝗹𝗲: ${video.title}\n\n👤 𝗔𝗿𝘁𝗶𝘀𝘁: ${video.author.name}\n\n${OWNER_TAG}\n🥀𝒀𝑬 𝑳𝑶 𝑨𝑷𝑲𝑰 👉 ${format.toUpperCase()}`;
+
+        const writer = fs.createWriteStream(cachePath);
+        const streamResponse = await axios({ url: downloadUrl, method: 'GET', responseType: 'stream' });
+        streamResponse.data.pipe(writer);
+
+        writer.on("finish", async () => {
+          const stats = fs.statSync(cachePath);
+          if (stats.size / (1024 * 1024) > 48) {
+            if (api.setMessageReaction) api.setMessageReaction("❌", messageID, () => {}, true);
+            if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
+            return api.sendMessage("⚠️ Maafi, file bahut badi hai!", threadID, messageID);
+          }
+
+          if (api.setMessageReaction) api.setMessageReaction("✅", messageID, () => {}, true);
+
+          if (isVideoReq) {
+            api.sendMessage({ body: infoMsg, attachment: fs.createReadStream(cachePath) }, threadID, () => fs.unlinkSync(cachePath));
+          } else {
+            await api.sendMessage(infoMsg, threadID);
+            api.sendMessage({ attachment: fs.createReadStream(cachePath) }, threadID, () => fs.unlinkSync(cachePath));
+          }
+        });
+        return;
+      } catch (err) {
+        if (api.setMessageReaction) api.setMessageReaction("❌", messageID, () => {}, true);
+        return api.sendMessage("Server thoda thak gaya hai, baad mein try karo 🥺", threadID, messageID);
+      }
+    }
+
+    // AI Chat Section
+    let userName = "User";
+    try {
+      const userInfo = await api.getUserInfo(senderID);
+      if (userInfo && userInfo[senderID]) {
+        userName = userInfo[senderID].name || "User";
+      }
+    } catch (err) {}
+
+    global.muskanHistory = global.muskanHistory || {};
+    global.muskanHistory[threadID] = global.muskanHistory[threadID] || [];
+    global.muskanHistory[threadID].push(`${userName}: ${cleanedMsg}`);
+    if (global.muskanHistory[threadID].length > 5) global.muskanHistory[threadID].shift();
+
+    const OWNER_UID = "100016828397863";
+    const prompt = `
 Tum Muskan ho, ek smart aur cute ladki ho jo sabhi languages mein baat kar sakti hai.
 Behavioral Rules:
 1. Normal Roman Urdu, Hinglish, aur user ki language mein baat karo. Tumhe sab pata hai. Agar koi owner ya banane wale ke bare mein puche, to bolo Shaan Khan K mere owner, meri jaan aur mere love hain.
@@ -35,138 +133,56 @@ Behavioral Rules:
 Relationship Logic:
 - Agar sender UID aur Owner Shaan ki UID match karti hai (${OWNER_UID}), toh samajh jao wo Shaan hain.
 - Shaan ke liye attitude hamesha romantic, caring aur supportive rahega.
-- Kisi aur ke liye ek cool, chill aur mast friend jaisi raho gi. Agar sender Uid shoni ka ${SHONI_UID} ho toh isko boyfriend ki tarah treat karo.
+- Kisi aur ke liye ek cool, chill aur mast friend jaisi raho gi. Agar sender Uid shoni ka 61592620318122 ho toh isko boyfriend ki tarah treat karo.
 
 Output Format:
 - Sirf raw text reply do, koi extra markdown ya asterisks use mat karna.
 
-Conversation History:
-${conversationContext}
-
+Chat history:
+${global.muskanHistory[threadID].join("\n")}
 Muskan:`;
 
-  try {
-    const response = await axios.get(AI_API, {
-      params: { prompt: prompt },
-      timeout: 20000
-    });
-
-    const reply = response.data?.reply || response.data?.response || response.data?.message || response.data;
-    
-    if (!reply || typeof reply !== "string") {
-      throw new Error("Invalid response format from Gemini API.");
-    }
-
-    const cleanedReply = reply.trim();
-    
-    // Save Muskan's reply in memory
-    global.chatMemory.history[threadID].push(`Muskan: ${cleanedReply}`);
-    if (global.chatMemory.history[threadID].length > 5) {
-      global.chatMemory.history[threadID].shift();
-    }
-
-    return cleanedReply;
-  } catch (error) {
-    console.error("Gemini AI API Error:", error);
-    throw error;
-  }
-}
-
-module.exports = {
-  config: {
-    name: "muskan",
-    aliases: ["ask", "chat", "ai"],
-    description: "Talk to Muskan AI (Gemini Powered)",
-    usage: "{prefix}muskan <your message>",
-    credit: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
-    hasPrefix: false,
-    permission: "PUBLIC",
-    cooldown: 5,
-    category: "AI"
-  },
-
-  run: async function({ api, message, args }) {
-    const { threadID, messageID, senderID } = message;
-
-    // Fast resolution for user name
-    let userName = "User";
     try {
-      const profile = await resolveUserProfile({ userID: senderID, threadID, api });
-      if (profile && profile.name) userName = profile.name;
+      const AI_API = "https://uzairrajputapis.qzz.io/api/ai/gemini";
+      const res = await axios.post(AI_API, { prompt });
+      let reply = res.data?.result?.answer || "Hmmm... 🥺";
+
+      const lines = reply.split('\n').filter(line => line.trim() !== '');
+      if (lines.length > 4) {
+        reply = lines.slice(0, 3).join('\n') + " ✨";
+      }
+
+      return api.sendMessage(reply, threadID, (err, info) => {
+        if (err) return;
+        if (global.client && global.client.replies) {
+          const repliesList = global.client.replies.get(threadID) || [];
+          repliesList.push({
+            command: this.config.name,
+            messageID: info.messageID,
+            expectedSender: senderID,
+            data: {}
+          });
+          global.client.replies.set(threadID, repliesList);
+        }
+      }, messageID);
+
     } catch (e) {
-      // Fallback if profile fails
-    }
-
-    // Command without prompt text triggers default message
-    if (!args.length) {
-      return api.sendMessage("Bolo na Shaan kya bat karni hai 😳🤔", threadID, messageID);
-    }
-
-    const promptText = args.join(" ").trim();
-
-    try {
-      const aiResponse = await getAiReply(threadID, userName, promptText);
-
-      api.sendMessage(aiResponse, threadID, (err, info) => {
-        if (err) return console.error("Muskan reply send error:", err);
-
-        const replies = global.client.replies.get(threadID) || [];
-        replies.push({
-          command: this.config.name,
-          messageID: info.messageID,
-          expectedSender: senderID,
-          data: {}
-        });
-        global.client.replies.set(threadID, replies);
-      }, messageID);
-
-    } catch (error) {
-      return api.sendMessage("❌ An error occurred while contacting Muskan AI API.", threadID, messageID);
+      return api.sendMessage("Mera net thoda slow chal raha hai, baad mein baat karte hain 🥺", threadID, messageID);
     }
   },
 
-  handleReply: async function({ api, message }) {
-    if (!message.messageReply) {
-      return api.sendMessage("❌ This command can only be used as a reply to Muskan's message.", message.threadID, message.messageID);
-    }
+  handleReply: async function ({ api, event, handleReply }) {
+    const { body, senderID } = event;
+    if (!body) return;
+    return this.run({ api, event, args: [body] });
+  },
 
-    const { threadID, messageID, senderID, body } = message;
+  handleEvent: async function ({ api, event }) {
+    const { body, senderID, messageReply } = event;
+    if (!body || senderID == api.getCurrentUserID()) return;
 
-    if (!body || body.trim().length === 0) {
-      return api.sendMessage("❌ Please provide a valid message.", threadID, messageID);
-    }
-
-    let userName = "User";
-    try {
-      const profile = await resolveUserProfile({ userID: senderID, threadID, api });
-      if (profile && profile.name) userName = profile.name;
-    } catch (e) {}
-
-    const promptText = body.trim();
-
-    try {
-      const aiResponse = await getAiReply(threadID, userName, promptText);
-
-      api.sendMessage(aiResponse, threadID, (err, info) => {
-        if (err) return console.error("Muskan handleReply error:", err);
-
-        const replies = global.client.replies.get(threadID) || [];
-        const updatedReplies = message.messageReply 
-          ? replies.filter(r => r.messageID !== message.messageReply.messageID) 
-          : replies;
-
-        updatedReplies.push({
-          command: this.config.name,
-          messageID: info.messageID,
-          expectedSender: senderID,
-          data: {}
-        });
-
-        global.client.replies.set(threadID, updatedReplies);
-      }, messageID);
-
-    } catch (error) {
-      return api.sendMessage("❌ Error occurred while talking to Muskan.", threadID, messageID);
+    if ((messageReply && messageReply.senderID == api.getCurrentUserID()) || body.toLowerCase().startsWith("muskan")) {
+      this.run({ api, event, args: [body] });
     }
   }
 };
