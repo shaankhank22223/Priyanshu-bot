@@ -78,7 +78,7 @@ module.exports = {
     aliases: ["ask", "chat", "ai"],
     description: "Talk to Muskan AI (Gemini Powered)",
     usage: "{prefix}muskan <your message>",
-    credit: "Shaan Khan",
+    credit: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
     hasPrefix: false,
     permission: "PUBLIC",
     cooldown: 5,
