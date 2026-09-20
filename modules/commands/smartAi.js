@@ -3,91 +3,26 @@ const fs = require("fs");
 const path = require("path");
 const { resolveUserProfile } = global.gender || require("../../utils/gender");
 
-const API_URL = "https://priyanshuapi.qzz.io/api/runner/priyanshu-ai";
-const HISTORY_FILE = path.join(__dirname, "temporary", "ai_history.json");
-const HISTORY_LIMIT = 8;
-const DEFAULT_PERSONA = "friendly";
+const AI_API = "https://uzairrajputapis.qzz.io/api/ai/gemini";
 
 const OWNER_UID = "100037743553265";
 const SHONI_UID = "61592620318122";
 
-// File and Directory setup
-function ensureHistoryFile() {
-  const dirPath = path.dirname(HISTORY_FILE);
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-  if (!fs.existsSync(HISTORY_FILE)) {
-    fs.writeFileSync(HISTORY_FILE, "{}", "utf8");
-  }
-}
+// Global Chat Memory for Thread History
+global.chatMemory = global.chatMemory || { history: {} };
 
-function readHistoryStore() {
-  ensureHistoryFile();
-  try {
-    const data = fs.readFileSync(HISTORY_FILE, "utf8");
-    return JSON.parse(data || "{}");
-  } catch (error) {
-    console.error("[AI HISTORY] Failed to read history store:", error);
-    return {};
-  }
-}
-
-function writeHistoryStore(data) {
-  try {
-    ensureHistoryFile();
-    fs.writeFileSync(HISTORY_FILE, JSON.stringify(data, null, 2), "utf8");
-  } catch (error) {
-    console.error("[AI HISTORY] Failed to write history store:", error);
-  }
-}
-
-function getUserHistory(userID) {
-  const store = readHistoryStore();
-  const history = Array.isArray(store[userID]) ? store[userID] : [];
-  return history.slice(-HISTORY_LIMIT);
-}
-
-function saveUserHistory(userID, history) {
-  const store = readHistoryStore();
-  store[userID] = history.slice(-HISTORY_LIMIT);
-  writeHistoryStore(store);
-}
-
-async function callPriyanshuApi(prompt, messages) {
-  const apiKey = global.config?.apiKeys?.priyanshuApi || process.env.PRIYANSHU_API_KEY;
-  if (!apiKey) {
-    throw new Error("API key missing (set config.apiKeys.priyanshuApi or PRIYANSHU_API_KEY).");
+async function getAiReply(threadID, userName, userQuery) {
+  // Initialize and maintain last 5 messages per thread
+  global.chatMemory.history[threadID] = global.chatMemory.history[threadID] || [];
+  global.chatMemory.history[threadID].push(`${userName}: ${userQuery}`);
+  if (global.chatMemory.history[threadID].length > 5) {
+    global.chatMemory.history[threadID].shift();
   }
 
-  const payload = {
-    prompt: prompt,
-    model: "priyansh-ai",
-    messages: messages.slice(-HISTORY_LIMIT),
-    persona: DEFAULT_PERSONA
-  };
-
-  const response = await axios.post(API_URL, payload, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    timeout: 20000
-  });
-
-  const reply = response.data?.data?.choices?.[0]?.message?.content;
-  if (!reply || typeof reply !== "string") {
-    throw new Error("Invalid AI response format.");
-  }
-
-  return reply.trim();
-}
-
-async function getAiReply(userID, userQuery) {
-  const history = getUserHistory(userID);
+  const conversationContext = global.chatMemory.history[threadID].join("\n");
 
   // Muskan Persona Custom Prompt
-  const customPrompt = `
+  const prompt = `
 Tum Muskan ho, ek smart aur cute ladki ho jo sabhi languages mein baat kar sakti hai.
 Behavioral Rules:
 1. Normal Roman Urdu, Hinglish, aur user ki language mein baat karo. Tumhe sab pata hai. Agar koi owner ya banane wale ke bare mein puche, to bolo Shaan Khan K mere owner, meri jaan aur mere love hain.
@@ -105,34 +40,45 @@ Relationship Logic:
 Output Format:
 - Sirf raw text reply do, koi extra markdown ya asterisks use mat karna.
 
-User Message: ${userQuery}
+Conversation History:
+${conversationContext}
+
 Muskan:`;
 
-  const updatedMessages = [
-    ...history,
-    { role: "user", content: customPrompt }
-  ].slice(-HISTORY_LIMIT);
+  try {
+    const response = await axios.get(AI_API, {
+      params: { prompt: prompt },
+      timeout: 20000
+    });
 
-  const aiReply = await callPriyanshuApi(customPrompt, updatedMessages);
+    const reply = response.data?.reply || response.data?.response || response.data?.message || response.data;
+    
+    if (!reply || typeof reply !== "string") {
+      throw new Error("Invalid response format from Gemini API.");
+    }
 
-  const finalHistory = [
-    ...history,
-    { role: "user", content: userQuery },
-    { role: "assistant", content: aiReply }
-  ].slice(-HISTORY_LIMIT);
+    const cleanedReply = reply.trim();
+    
+    // Save Muskan's reply in memory
+    global.chatMemory.history[threadID].push(`Muskan: ${cleanedReply}`);
+    if (global.chatMemory.history[threadID].length > 5) {
+      global.chatMemory.history[threadID].shift();
+    }
 
-  saveUserHistory(userID, finalHistory);
-
-  return aiReply;
+    return cleanedReply;
+  } catch (error) {
+    console.error("Gemini AI API Error:", error);
+    throw error;
+  }
 }
 
 module.exports = {
   config: {
     name: "muskan",
     aliases: ["ask", "chat", "ai"],
-    description: "Talk to Muskan AI",
+    description: "Talk to Muskan AI (Gemini Powered)",
     usage: "{prefix}muskan <your message>",
-    credit: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
+    credit: "Shaan Khan",
     hasPrefix: false,
     permission: "PUBLIC",
     cooldown: 5,
@@ -142,7 +88,16 @@ module.exports = {
   run: async function({ api, message, args }) {
     const { threadID, messageID, senderID } = message;
 
-    // Jab user sirf command ya bina arguments ke 'muskan' likhe
+    // Fast resolution for user name
+    let userName = "User";
+    try {
+      const profile = await resolveUserProfile({ userID: senderID, threadID, api });
+      if (profile && profile.name) userName = profile.name;
+    } catch (e) {
+      // Fallback if profile fails
+    }
+
+    // Command without prompt text triggers default message
     if (!args.length) {
       return api.sendMessage("Bolo na Shaan kya bat karni hai 😳🤔", threadID, messageID);
     }
@@ -150,10 +105,10 @@ module.exports = {
     const promptText = args.join(" ").trim();
 
     try {
-      const aiResponse = await getAiReply(senderID, promptText);
+      const aiResponse = await getAiReply(threadID, userName, promptText);
 
       api.sendMessage(aiResponse, threadID, (err, info) => {
-        if (err) return console.error("Muskan AI reply error:", err);
+        if (err) return console.error("Muskan reply send error:", err);
 
         const replies = global.client.replies.get(threadID) || [];
         replies.push({
@@ -166,8 +121,7 @@ module.exports = {
       }, messageID);
 
     } catch (error) {
-      console.error("Muskan AI command error:", error);
-      return api.sendMessage("❌ An error occurred while contacting Muskan AI.", threadID, messageID);
+      return api.sendMessage("❌ An error occurred while contacting Muskan AI API.", threadID, messageID);
     }
   },
 
@@ -182,16 +136,24 @@ module.exports = {
       return api.sendMessage("❌ Please provide a valid message.", threadID, messageID);
     }
 
+    let userName = "User";
+    try {
+      const profile = await resolveUserProfile({ userID: senderID, threadID, api });
+      if (profile && profile.name) userName = profile.name;
+    } catch (e) {}
+
     const promptText = body.trim();
 
     try {
-      const aiResponse = await getAiReply(senderID, promptText);
+      const aiResponse = await getAiReply(threadID, userName, promptText);
 
       api.sendMessage(aiResponse, threadID, (err, info) => {
-        if (err) return console.error("Muskan AI reply error:", err);
+        if (err) return console.error("Muskan handleReply error:", err);
 
         const replies = global.client.replies.get(threadID) || [];
-        const updatedReplies = message.messageReply ? replies.filter(r => r.messageID !== message.messageReply.messageID) : replies;
+        const updatedReplies = message.messageReply 
+          ? replies.filter(r => r.messageID !== message.messageReply.messageID) 
+          : replies;
 
         updatedReplies.push({
           command: this.config.name,
@@ -204,7 +166,6 @@ module.exports = {
       }, messageID);
 
     } catch (error) {
-      console.error("Muskan handleReply error:", error);
       return api.sendMessage("❌ Error occurred while talking to Muskan.", threadID, messageID);
     }
   }
